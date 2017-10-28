@@ -463,6 +463,9 @@ A table supports the following options:
 |                                |          |             | belonging to the same data center than the read           |
 |                                |          |             | coordinator for the purpose of read repairs.              |
 +--------------------------------+----------+-------------+-----------------------------------------------------------+
+| ``speculative_retry``          | *simple* | 99percentile| :ref:`Speculative retry options                           |
+|                                |          |             | <speculative-retry-options>`.                             |
++--------------------------------+----------+-------------+-----------------------------------------------------------+
 | ``gc_grace_seconds``           | *simple* | 864000      | Time to wait before garbage collecting tombstones         |
 |                                |          |             | (deletion markers).                                       |
 +--------------------------------+----------+-------------+-----------------------------------------------------------+
@@ -480,6 +483,34 @@ A table supports the following options:
 +--------------------------------+----------+-------------+-----------------------------------------------------------+
 | ``caching``                    | *map*    | *see below* | :ref:`Caching options <cql-caching-options>`.             |
 +--------------------------------+----------+-------------+-----------------------------------------------------------+
+
+.. _speculative-retry-options:
+
+Speculative retry options
+#########################
+
+By default, Cassandra read coordinators only query as many replicas as necessary to satisfy
+consistency levels: one for consistency level ``ONE``, a quorum for ``QUORUM``, and so on.
+``speculative_retry`` determines when coordinators may query additional replicas, which is useful
+when replicas are slow or unresponsive.  The following are legal values:
+
+========================= ================ =============================================================================
+ Format                    Example          Description
+========================= ================ =============================================================================
+ ``Xpercentile``           90.5percentile   Coordinators record average per-table response times for all replicas.
+                                            If a replica takes longer than ``X`` percent of this table's average
+                                            response time, the coordinator queries an additional replica.
+                                            ``X`` must be between 0 and 100.
+ ``Yms``                   25ms             If a replica takes more than ``Y`` milliseconds to respond,
+                                            the coordinator queries an additional replica.
+ ``ALWAYS``                                 Coordinators always query all replicas.
+ ``NONE``                                   Coordinators never query additional replicas.
+========================= ================ =============================================================================
+
+This setting does not affect reads with consistency level ``ALL`` because they already query all replicas.
+
+Note that frequently reading from additional replicas can hurt cluster performance.
+When in doubt, keep the default ``99percentile``.
 
 .. _cql-compaction-options:
 
